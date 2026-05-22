@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Drift // Trajectory Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#34343d",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffdbce",
+                        "primary-fixed-dim": "#c2c1ff",
+                        "on-surface-variant": "#c7c4d7",
+                        "on-surface": "#e4e1ed",
+                        "on-primary-fixed-variant": "#332dbc",
+                        "outline": "#918fa0",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#93000b",
+                        "secondary": "#ffb4ab",
+                        "secondary-fixed-dim": "#ffb4ab",
+                        "on-secondary-fixed": "#410002",
+                        "surface-dim": "#13131b",
+                        "background": "#13131b",
+                        "tertiary-container": "#c24500",
+                        "on-tertiary-container": "#ffefeb",
+                        "secondary-container": "#a0010d",
+                        "on-secondary-container": "#ffa99f",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "primary-fixed": "#e2dfff",
+                        "surface-tint": "#c2c1ff",
+                        "on-primary-container": "#f4f1ff",
+                        "surface-variant": "#34343d",
+                        "surface-container-lowest": "#0d0d16",
+                        "surface": "#13131b",
+                        "inverse-primary": "#4d4ad5",
+                        "surface-container-high": "#292932",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "inverse-on-surface": "#302f39",
+                        "on-primary-fixed": "#0c006b",
+                        "on-tertiary": "#5a1c00",
+                        "secondary-fixed": "#ffdad6",
+                        "surface-bright": "#393842",
+                        "on-primary": "#1800a7",
+                        "primary": "#c2c1ff",
+                        "surface-container": "#1f1f28",
+                        "surface-container-low": "#1b1b23",
+                        "error-container": "#93000a",
+                        "primary-container": "#5e5ce6",
+                        "on-error": "#690005",
+                        "tertiary": "#ffb599",
+                        "on-secondary": "#690005",
+                        "outline-variant": "#464554",
+                        "inverse-surface": "#e4e1ed",
+                        "on-background": "#e4e1ed",
+                        "on-tertiary-fixed": "#370e00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "base": "8px",
+                        "max-width": "1200px",
+                        "section-gap": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "metric-lg": ["Space Mono"],
+                        "label-caps": ["Space Mono"],
+                        "display-lg": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "metric-sm": ["Space Mono"],
+                        "body-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                        "metric-lg": ["20px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "400"}],
+                        "label-caps": ["10px", {"lineHeight": "1.0", "letterSpacing": "0.2em", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "300"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "300"}],
+                        "metric-sm": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "400"}],
+                        "body-md": ["15px", {"lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0d0d16;
+            color: #e4e1ed;
+            overflow-x: hidden;
+            min-height: max(884px, 100dvh);
+        }
+
+        .atmospheric-grid {
+            background-image: 
+                linear-gradient(rgba(194, 193, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(194, 193, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .glow-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #c2c1ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #c2c1ff, 0 0 20px rgba(194, 193, 255, 0.5);
+        }
+
+        .glow-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #c2c1ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #c2c1ff, 0 0 20px rgba(194, 193, 255, 0.5);
+            border: none;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: rgba(194, 193, 255, 0.2); box-shadow: 0 0 0px rgba(194, 193, 255, 0); }
+            50% { border-color: rgba(194, 193, 255, 0.8); box-shadow: 0 0 20px rgba(194, 193, 255, 0.3); }
+            100% { border-color: rgba(194, 193, 255, 0.2); box-shadow: 0 0 0px rgba(194, 193, 255, 0); }
+        }
+
+        .pulse-btn {
+            animation: pulse-border 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .input-underline {
+            border-bottom: 1px solid rgba(145, 143, 160, 0.3);
+            transition: all 0.5s ease;
+        }
+        
+        .input-underline:focus-within {
+            border-bottom: 1px solid #c2c1ff;
+            box-shadow: 0 4px 12px -4px rgba(194, 193, 255, 0.2);
+        }
+
+        /* Canvas Styles */
+        .trajectory-glow {
+            filter: drop-shadow(0 0 8px rgba(194, 193, 255, 0.4));
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes pulse-glow-border {
+            0% { border-color: rgba(194, 193, 255, 0.2); }
+            50% { border-color: rgba(194, 193, 255, 0.6); }
+            100% { border-color: rgba(194, 193, 255, 0.2); }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow-border 3s infinite ease-in-out;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .trajectory-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: #13131b;
+        }
+
+        .trajectory-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 5s linear forwards;
+            opacity: 0.3;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body class="font-body-md antialiased min-h-screen">
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-gutter h-16">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="sensors_kronecker">sensors_krx</span>
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase" id="header-status">System Status: Active</span>
+</div>
+<div class="font-metric-lg text-metric-lg tracking-widest text-primary" id="header-title">DRIFT</div>
+<button class="material-symbols-outlined text-primary hover:opacity-50 transition-opacity active:opacity-100 duration-500" data-icon="blur_on">blur_on</button>
+</header>
+<div id="simulator-tab-view">
+<!-- Input View -->
+<div id="input-view">
+<main class="relative pt-24 pb-32 px-6 max-w-lg mx-auto atmospheric-grid min-h-screen">
+<!-- Hero Branding -->
+<section class="mb-12 text-center">
+<h1 class="font-display-lg text-display-lg mb-2 text-on-surface uppercase tracking-tighter">Input Matrix</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant opacity-70">Map your current behavioral coordinates.</p>
+</section>
+<!-- Form Canvas -->
+<form class="space-y-12" id="matrix-form">
+<!-- Daily Routines -->
+<div class="group">
+<label class="font-label-caps text-label-caps text-primary mb-4 block opacity-50 group-focus-within:opacity-100 transition-opacity">Identify: Daily Routines</label>
+<div class="input-underline">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-on-surface font-body-md py-4 min-h-[100px] resize-none placeholder:text-on-surface-variant/30" name="daily_routines" placeholder="Observe your mechanical repetition. Use bullet points to list the sequences that define your static state."></textarea>
+</div>
+</div>
+<!-- Goals & Ambitions -->
+<div class="group">
+<label class="font-label-caps text-label-caps text-primary mb-4 block opacity-50 group-focus-within:opacity-100 transition-opacity">Project: Goals and Ambitions</label>
+<div class="input-underline">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-on-surface font-body-md py-4 min-h-[100px] resize-none placeholder:text-on-surface-variant/30" name="goals_and_ambitions" placeholder="Define the distant beacon. Use bullet points to list where you intend to manifest your influence next."></textarea>
+</div>
+</div>
+<!-- Distractions & Leaks -->
+<div class="group">
+<label class="font-label-caps text-label-caps text-primary mb-4 block opacity-50 group-focus-within:opacity-100 transition-opacity">Scan: Distractions and Leaks</label>
+<div class="input-underline">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-on-surface font-body-md py-4 min-h-[100px] resize-none placeholder:text-on-surface-variant/30" name="distractions_and_leaks" placeholder="Detect points of friction. Use bullet points to list where entropy bleeds your focused energy."></textarea>
+</div>
+</div>
+<!-- Metric Sliders -->
+<div class="space-y-10 pt-4">
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Metric: Consistency Rating</label>
+<span class="font-metric-sm text-metric-sm text-primary" id="val-consistency">05</span>
+</div>
+<input class="w-full h-[1px] bg-white/10 appearance-none outline-none glow-slider" max="10" min="1" name="consistency_rating" oninput="document.getElementById('val-consistency').innerText = this.value.padStart(2, '0')" type="range" value="5"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Metric: Emotional Resilience</label>
+<span class="font-metric-sm text-metric-sm text-primary" id="val-resilience">05</span>
+</div>
+<input class="w-full h-[1px] bg-white/10 appearance-none outline-none glow-slider" max="10" min="1" name="emotional_resilience" oninput="document.getElementById('val-resilience').innerText = this.value.padStart(2, '0')" type="range" value="5"/>
+</div>
+</div>
+<!-- Visual Decorative Divider -->
+<div class="flex items-center justify-center gap-4 py-8">
+<div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+<div class="material-symbols-outlined text-primary/30 text-xs" data-icon="adjust">adjust</div>
+<div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+</div>
+<!-- Action Button -->
+<div class="flex flex-col items-center gap-6">
+<button class="pulse-btn w-full py-5 border border-white/20 font-label-caps text-label-caps tracking-widest text-primary hover:bg-primary/5 transition-all active:scale-95" id="submit-btn" type="submit">
+                        Initiate Trajectory Analysis
+                    </button>
+<div class="flex items-center gap-2 opacity-30">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span>
+<span class="font-metric-sm text-metric-sm uppercase">Encrypted Data Stream</span>
+</div>
+</div>
+</form>
+</main>
+<!-- Background Atmospheric Elements -->
+<div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+<div class="absolute top-1/4 -right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-secondary-container/5 rounded-full blur-[160px]"></div>
+</div>
+</div>
+<!-- Canvas View -->
+<div class="hidden" id="canvas-view">
+<!-- Background Trajectories -->
+<div class="trajectory-bg">
+<svg fill="none" height="100%" viewbox="0 0 1000 1000" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path class="trajectory-line" d="M-50 800C150 700 350 900 550 750C750 600 950 800 1150 700" stroke="#c2c1ff" stroke-width="1"></path>
+<path class="trajectory-line" d="M-50 600C250 500 450 650 650 550C850 450 1050 600 1250 500" opacity="0.4" stroke="#5e5ce6" stroke-width="1.5"></path>
+<path class="trajectory-line" d="M-50 400C100 450 300 350 500 400C700 450 900 350 1050 400" opacity="0.2" stroke="#a0010d" stroke-width="0.5"></path>
+</svg>
+</div>
+<main class="pt-24 pb-32 px-gutter max-w-max-width mx-auto min-h-screen">
+<!-- Back Button -->
+<button class="mb-8 font-label-caps text-[10px] text-primary hover:opacity-80 transition-opacity flex items-center gap-2 uppercase tracking-widest" onclick="goBackToInput()">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+    Adjust Coordinates
+</button>
+<!-- Parallel Future Profiles Tabs -->
+<nav class="mb-12 overflow-x-auto no-scrollbar -mx-gutter px-gutter">
+<div class="flex gap-4 min-w-max pb-2">
+<button class="tab-trigger px-6 py-2 rounded-full border border-primary/20 text-primary font-label-caps text-[10px] whitespace-nowrap bg-primary/10 trajectory-glow transition-all active:scale-95 uppercase tracking-widest" data-tab="current" onclick="switchTab('current')">Current Drift</button>
+<button class="tab-trigger px-6 py-2 rounded-full border border-white/10 text-on-surface-variant font-label-caps text-[10px] whitespace-nowrap hover:border-primary/40 transition-all active:scale-95 uppercase tracking-widest" data-tab="optimized" onclick="switchTab('optimized')">Optimized Drift</button>
+<button class="tab-trigger px-6 py-2 rounded-full border border-white/10 text-on-surface-variant font-label-caps text-[10px] whitespace-nowrap hover:border-primary/40 transition-all active:scale-95 uppercase tracking-widest" data-tab="high" onclick="switchTab('high')">High-Execution Drift</button>
+<button class="tab-trigger px-6 py-2 rounded-full border border-white/10 text-on-surface-variant font-label-caps text-[10px] whitespace-nowrap hover:border-primary/40 transition-all active:scale-95 uppercase tracking-widest" data-tab="burnout" onclick="switchTab('burnout')">Burnout Drift</button>
+<button class="tab-trigger px-6 py-2 rounded-full border border-white/10 text-on-surface-variant font-label-caps text-[10px] whitespace-nowrap hover:border-primary/40 transition-all active:scale-95 uppercase tracking-widest" data-tab="distracted" onclick="switchTab('distracted')">Distracted Drift</button>
+</div>
+</nav>
+<!-- Content Area -->
+<div class="space-y-8" id="trajectory-content">
+<!-- Summary Block -->
+<section class="glass-panel p-8 rounded-lg relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent"></div>
+<h3 class="font-label-caps text-label-caps text-primary/60 mb-4 tracking-[0.3em] uppercase">Behavioral Summary</h3>
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed max-w-2xl italic" id="behavioral_summary">
+                        The current vector suggests a repetitive oscillations between focus and fatigue. Your cognitive resonance is stabilizing, but the friction of routine is beginning to erode long-term velocity. A recalibration of minor habits is advised before the drift becomes permanent.
+                    </p>
+<div class="mt-6 flex gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="w-2 h-2 rounded-full bg-primary/40"></span>
+<span class="w-2 h-2 rounded-full bg-primary/20"></span>
+</div>
+</section>
+<!-- Grid Stats -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Velocity & Stress -->
+<div class="space-y-8">
+<!-- Growth Velocity -->
+<div class="glass-panel p-6 rounded-lg">
+<div class="flex justify-between items-end mb-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant tracking-widest uppercase">Growth Velocity</h3>
+<span class="font-metric-lg text-metric-lg text-primary" id="growth_velocity_display">64%</span>
+</div>
+<div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary trajectory-glow shadow-[0_0_15px_rgba(194,193,255,0.8)] transition-all duration-1000 ease-out" id="growth_velocity_percentage" style="width: 64%"></div>
+</div>
+</div>
+<!-- Stress Indicator -->
+<div class="glass-panel p-6 rounded-lg flex items-center justify-between">
+<div>
+<h3 class="font-label-caps text-label-caps text-on-surface-variant tracking-widest mb-1 uppercase">Stress Tracker</h3>
+<p class="font-body-md text-on-surface-variant/60 text-sm">Systemic friction analysis</p>
+</div>
+<div class="relative w-20 h-20">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-white/5" cx="40" cy="40" fill="transparent" r="34" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-primary transition-all duration-1000 ease-in-out" cx="40" cy="40" fill="transparent" id="stress_indicator_circle" r="34" stroke="currentColor" stroke-dasharray="213.6" stroke-dashoffset="149.5" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-metric-lg text-metric-lg" id="stress_indicator_level">03</div>
+</div>
+</div>
+</div>
+<!-- Probabilities & Belief -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Opportunity Probability -->
+<div class="glass-panel p-6 rounded-lg flex flex-col justify-between border-t-2 border-t-primary/20">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-6 uppercase">Opportunity Rate</h3>
+<div class="space-y-1">
+<span class="font-display-lg text-display-lg text-primary block" id="opportunity_probability_percentage">82%</span>
+<span class="font-metric-sm text-metric-sm text-on-surface-variant/40 uppercase">Calculated Y-Axis</span>
+</div>
+</div>
+<!-- Self Belief Trajectory -->
+<div class="glass-panel p-6 rounded-lg flex flex-col justify-between border-b-2 border-b-primary/20">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-6 uppercase">Mindset Index</h3>
+<div class="space-y-1">
+<span class="font-display-lg text-display-lg text-primary block" id="self_belief_trajectory_metric">0.94</span>
+<span class="font-metric-sm text-metric-sm text-on-surface-variant/40 uppercase">Internal Conviction Index</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Asset Card -->
+<div class="glass-panel rounded-lg overflow-hidden h-64 relative group pulse-glow">
+<img class="w-full h-full object-cover opacity-40 mix-blend-luminosity group-hover:scale-105 transition-transform duration-1000" data-alt="A cinematic, ultra-detailed visualization of complex data streams spiraling through a deep space void. Vibrant neon indigo and violet light trails curve elegantly against an absolute black background, mimicking behavioral neural pathways. The lighting is low-key with sharp luminescent highlights, creating a meditative yet highly technical sci-fi atmosphere that feels both futuristic and analytical." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1beDSHShYMzSu1xt5QDb0T-mXaaqah1tnHyc1Uk0pkIBbQnaQP_dOV1rmJjLi9sQh4ktOn_6J6EusNK0fNCPKObe0GtonDGBqoyhJOGBa2IqjkwjkUvppRtgWk_YZcPKwiWZIkjcarGfGVjRRgbS_6YoagyDYPB86rFY9V2Y_r1azZ6TtzdhBImH1S45IdVUpzErxmTmdsLyiUxl2r-ZINcuyu8wr7aMJ_bs6BXrF7Jgrm6kozR1ZYfUUND6URKgImp8DnR131M8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<span class="font-label-caps text-label-caps text-primary mb-2 block uppercase">Projected Visualization Alpha</span>
+<p class="font-body-md text-on-surface/70">Neural density mapping across temporal drift.</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<!-- Timeline View -->
+<div class="hidden px-gutter pb-32 min-h-screen pt-24 max-w-lg mx-auto" id="timeline-tab-view">
+<h2 class="font-headline-md text-headline-md uppercase tracking-widest text-on-surface mb-8 text-center">Temporal Convergence Chronology</h2>
+<div class="flex flex-col gap-6 mt-8" id="history-feed">
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="fixed bottom-8 w-full z-50 flex justify-center px-4">
+<nav class="bg-surface-dim/30 backdrop-blur-2xl border border-white/10 rounded-full w-[320px] flex justify-around items-center h-16 shadow-[0_0_20px_rgba(194,193,255,0.1)]">
+<button class="nav-btn flex items-center justify-center text-primary drop-shadow-[0_0_8px_rgba(194,193,255,0.8)] active:scale-90 transition-transform duration-300" id="nav-btn-timeline">
+<span class="material-symbols-outlined">timeline</span>
+</button>
+<button class="nav-btn flex items-center justify-center text-on-surface-variant/50 hover:text-primary/80 transition-all active:scale-90 duration-300" id="nav-btn-query">
+<span class="material-symbols-outlined">query_stats</span>
+</button>
+<button class="flex items-center justify-center text-on-surface-variant/50 hover:text-primary/80 transition-all active:scale-90 duration-300">
+<span class="material-symbols-outlined">psychology</span>
+</button>
+<button class="flex items-center justify-center text-on-surface-variant/50 hover:text-primary/80 transition-all active:scale-90 duration-300">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+</div>
+<!-- Footer -->
+<footer class="max-w-max-width mx-auto flex flex-col items-center gap-4 opacity-40 w-full py-12">
+<div class="font-metric-sm text-metric-sm text-primary uppercase">Drift</div>
+<div class="flex gap-8 font-label-caps text-label-caps text-on-surface-variant uppercase">
+<a class="hover:text-white transition-colors" href="#">Terminal</a>
+<a class="hover:text-white transition-colors" href="#">Logs</a>
+<a class="hover:text-white transition-colors" href="#">Encryption</a>
+</div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase">Drift // Behavioral Trajectory</p>
+<div class="text-[8px] font-label-caps tracking-widest text-on-surface-variant/50 mt-2 uppercase">© 2024 DRIFT_OPERATIONS.ARC</div>
+</footer>
+<script>
+        // Micro-interactions for form focus and atmospheric feedback
+        document.querySelectorAll('textarea').forEach(el => {
+            el.addEventListener('focus', () => {
+                // Subtle pulse of the entire background when focused
+                document.body.style.transition = 'background-color 1s ease';
+                document.body.style.backgroundColor = '#0f0f18';
+            });
+            el.addEventListener('blur', () => {
+                document.body.style.backgroundColor = '#0d0d16';
+            });
+        });
+
+        let tabData = {
+            current: {
+                behavioral_summary: "The current vector suggests a repetitive oscillations between focus and fatigue. Your cognitive resonance is stabilizing, but the friction of routine is beginning to erode long-term velocity. A recalibration of minor habits is advised before the drift becomes permanent.",
+                growth_velocity_percentage: 64,
+                stress_indicator_level: "03",
+                opportunity_probability_percentage: "82%",
+                self_belief_trajectory_metric: "0.94",
+                stress_color: "text-primary"
+            },
+            optimized: {
+                behavioral_summary: "Clinical precision in time-allocation detected. This trajectory optimizes for steady caloric and mental output, minimizing entropy. Your growth curve is steepening toward a singularity of high-performance flow. Minimal friction detected in core processes.",
+                growth_velocity_percentage: 92,
+                stress_indicator_level: "01",
+                opportunity_probability_percentage: "96%",
+                self_belief_trajectory_metric: "0.99",
+                stress_color: "text-primary"
+            },
+            high: {
+                behavioral_summary: "Maximum capacity threshold reached. You are operating in a state of hyper-execution where output exceeds predictive norms. Caution: Sustaining this velocity requires significant auxiliary support systems to prevent mechanical failure of motivation.",
+                growth_velocity_percentage: 98,
+                stress_indicator_level: "06",
+                opportunity_probability_percentage: "88%",
+                self_belief_trajectory_metric: "0.88",
+                stress_color: "text-tertiary"
+            },
+            burnout: {
+                behavioral_summary: "System critical. Trajectory points downward into a void of diminishing returns. The clinical data shows exhaustion of the central drive core. Immediate hibernation and cessation of non-vital cognitive processes are required to preserve structural integrity.",
+                growth_velocity_percentage: 12,
+                stress_indicator_level: "09",
+                opportunity_probability_percentage: "15%",
+                self_belief_trajectory_metric: "0.21",
+                stress_color: "text-secondary"
+            },
+            distracted: {
+                behavioral_summary: "High noise-to-signal ratio. Your attention trajectory is fragmented across multiple low-value vectors. Probability of achieving primary objectives is decaying as entropy increases. Focused synchronization is needed to re-align the drift.",
+                growth_velocity_percentage: 42,
+                stress_indicator_level: "04",
+                opportunity_probability_percentage: "48%",
+                self_belief_trajectory_metric: "0.65",
+                stress_color: "text-primary"
+            }
+        };
+
+        function switchTab(tabKey) {
+            // UI State
+            document.querySelectorAll('.tab-trigger').forEach(btn => {
+                btn.classList.remove('bg-primary/10', 'trajectory-glow', 'border-primary/20', 'text-primary');
+                btn.classList.add('border-white/10', 'text-on-surface-variant');
+            });
+            const activeBtn = document.querySelector(`[data-tab="${tabKey}"]`);
+            if(activeBtn) {
+                activeBtn.classList.remove('border-white/10', 'text-on-surface-variant');
+                activeBtn.classList.add('bg-primary/10', 'trajectory-glow', 'border-primary/20', 'text-primary');
+            }
+
+            // Data Mapping
+            const data = tabData[tabKey];
+            if(!data) return;
+            
+            const summary = document.getElementById('behavioral_summary');
+            summary.classList.add('opacity-0');
+            
+            setTimeout(() => {
+                summary.textContent = data.behavioral_summary;
+                document.getElementById('growth_velocity_percentage').style.width = data.growth_velocity_percentage + '%';
+                document.getElementById('growth_velocity_display').textContent = data.growth_velocity_percentage + '%';
+                
+                const stressLevel = parseInt(data.stress_indicator_level);
+                const stressCircle = document.getElementById('stress_indicator_circle');
+                const stressText = document.getElementById('stress_indicator_level');
+                
+                // SVG circle circumference is roughly 213.6
+                const offset = 213.6 - (213.6 * (stressLevel / 10));
+                stressCircle.style.strokeDashoffset = offset;
+                stressText.textContent = data.stress_indicator_level;
+                
+                // Stress color logic
+                stressCircle.classList.remove('text-primary', 'text-secondary', 'text-tertiary');
+                stressText.classList.remove('text-primary', 'text-secondary', 'text-tertiary');
+                if(data.stress_color) {
+                    stressCircle.classList.add(data.stress_color);
+                    stressText.classList.add(data.stress_color);
+                }
+
+                document.getElementById('opportunity_probability_percentage').textContent = data.opportunity_probability_percentage;
+                document.getElementById('self_belief_trajectory_metric').textContent = data.self_belief_trajectory_metric;
+                
+                summary.classList.remove('opacity-0');
+            }, 300);
+        }
+
+        function goBackToInput() {
+            document.getElementById('canvas-view').classList.add('hidden');
+            document.getElementById('input-view').classList.remove('hidden');
+            document.getElementById('header-title').textContent = 'DRIFT';
+        }
+
+        document.getElementById('submit-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            
+            btn.innerHTML = 'Connecting to Trajectory Engine...';
+            btn.classList.add('animate-pulse', 'opacity-50');
+            btn.disabled = true;
+
+            const payload = {
+                daily_routines: document.querySelector('textarea[name="daily_routines"]').value,
+                goals_and_ambitions: document.querySelector('textarea[name="goals_and_ambitions"]').value,
+                distractions_and_leaks: document.querySelector('textarea[name="distractions_and_leaks"]').value,
+                consistency_rating: Number(document.querySelector('input[name="consistency_rating"]').value),
+                emotional_resilience: Number(document.querySelector('input[name="emotional_resilience"]').value)
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/v1/trajectory/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const resultData = await response.json();
+                    const normalizeMap = { 
+                        "Current Drift": "current", 
+                        "Optimized Drift": "optimized", 
+                        "High-Execution Drift": "high", 
+                        "Burnout Drift": "burnout", 
+                        "Distracted Drift": "distracted" 
+                    };
+                    
+                    const normalizedData = {};
+                    for (const [key, value] of Object.entries(resultData)) {
+                        const normalizedKey = normalizeMap[key] || key.toLowerCase();
+                        normalizedData[normalizedKey] = value;
+                    }
+                    Object.assign(tabData, normalizedData);
+                } else {
+                    console.warn("API responded with an error, proceeding with local data visualization.");
+                }
+            } catch (err) {
+                console.warn("API unavailable, proceeding with local data visualization.");
+            } finally {
+                // Proceed to show canvas regardless to maintain flow for demo purposes
+                document.getElementById('input-view').classList.add('hidden');
+                document.getElementById('canvas-view').classList.remove('hidden');
+                document.getElementById('header-title').textContent = 'TRAJECTORY CANVAS';
+                switchTab('current');
+                
+                // Reset button state
+                btn.innerHTML = 'Initiate Trajectory Analysis';
+                btn.classList.remove('animate-pulse', 'opacity-50');
+                btn.disabled = false;
+            }
+        });
+
+        // App Routing
+        const navTimelineBtn = document.getElementById('nav-btn-timeline');
+        const navQueryBtn = document.getElementById('nav-btn-query');
+        const simulatorTabView = document.getElementById('simulator-tab-view');
+        const timelineTabView = document.getElementById('timeline-tab-view');
+
+        function setActiveNavBtn(activeBtn) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-primary', 'drop-shadow-[0_0_8px_rgba(194,193,255,0.8)]');
+                btn.classList.add('text-on-surface-variant/50');
+            });
+            activeBtn.classList.remove('text-on-surface-variant/50');
+            activeBtn.classList.add('text-primary', 'drop-shadow-[0_0_8px_rgba(194,193,255,0.8)]');
+        }
+
+        navTimelineBtn.addEventListener('click', () => {
+            simulatorTabView.classList.remove('hidden');
+            timelineTabView.classList.add('hidden');
+            setActiveNavBtn(navTimelineBtn);
+        });
+
+        navQueryBtn.addEventListener('click', () => {
+            simulatorTabView.classList.add('hidden');
+            timelineTabView.classList.remove('hidden');
+            setActiveNavBtn(navQueryBtn);
+            loadTrajectoryHistory();
+        });
+
+        async function loadTrajectoryHistory() {
+            const feed = document.getElementById('history-feed');
+            feed.innerHTML = '<div class="text-center text-on-surface-variant uppercase">Loading Data Stream...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/v1/trajectory/history');
+                if(response.ok) {
+                    const data = await response.json();
+                    feed.innerHTML = '';
+                    
+                    data.forEach(item => {
+                        const trajData = item.trajectory_data || item;
+                        const consistency = trajData.consistency_rating || 0;
+                        const resilience = trajData.emotional_resilience || 0;
+                        const currentDrift = trajData.simulations?.['Current Drift'] || trajData.simulations?.['current'] || {};
+                        const summaryText = currentDrift.behavioral_summary || 'No summary available.';
+                        const displayTime = item.timestamp ? new Date(item.timestamp).toLocaleString() : new Date().toLocaleString();
+
+                        const card = document.createElement('div');
+                        card.className = 'bg-surface-container-low/50 backdrop-blur-md border border-white/5 rounded-xl p-5';
+                        card.innerHTML = `
+                            <div class="font-label-caps text-label-caps text-on-surface-variant mb-4">${displayTime}</div>
+                            <div class="flex gap-4 mb-4">
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex justify-between font-metric-sm text-metric-sm">
+                                        <span class="text-on-surface-variant uppercase">Consistency Rating</span>
+                                        <span class="text-primary">${consistency || 'N/A'}</span>
+                                    </div>
+                                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary" style="width: ${consistency * 10}%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex justify-between font-metric-sm text-metric-sm">
+                                        <span class="text-on-surface-variant uppercase">Emotional Resilience</span>
+                                        <span class="text-primary">${resilience || 'N/A'}</span>
+                                    </div>
+                                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary" style="width: ${resilience * 10}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="font-body-md text-on-surface italic opacity-80">${summaryText}</p>
+                        `;
+                        feed.appendChild(card);
+                    });
+                } else {
+                     feed.innerHTML = '<div class="text-center text-error uppercase">Error Loading History</div>';
+                }
+            } catch(e) {
+                // Fallback for demo
+                feed.innerHTML = `
+                    <div class="bg-surface-container-low/50 backdrop-blur-md border border-white/5 rounded-xl p-5">
+                        <div class="font-label-caps text-label-caps text-on-surface-variant mb-4 uppercase">Mock Data Stream</div>
+                        <p class="font-body-md text-on-surface italic opacity-80">API connection unavailable. Displaying local cache equivalent.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body></html>
